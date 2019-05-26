@@ -2,6 +2,10 @@
     "name": "nblackwe/php-box-client",
     "type": "library",
     "license": "MIT",
+     "require": {
+  
+        "firebase/php-jwt": "^5.0"
+    },
     "autoload": {
         "psr-4": {
             "box\\": "src/"
