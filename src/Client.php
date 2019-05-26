@@ -101,7 +101,7 @@ class Client {
 				$response = $client->request('post', $authenticationUrl, $args);
 				$httpcode = $response->getStatusCode();
 
-			} catch (\RequestException $e) {
+			} catch (\GuzzleHttp\Exception\RequestException $e) {
 				//echo $e->getRequest();
 				if ($e->hasResponse()) {
 					$httpcode = $e->getResponse()->getStatusCode();
@@ -196,7 +196,7 @@ class Client {
 				$response = $client->request('get', 'https://api.box.com/2.0/folders/' . $folderId . '/items', $args);
 				$httpcode = $response->getStatusCode();
 
-			} catch (\RequestException $e) {
+			} catch (\GuzzleHttp\Exception\RequestException $e) {
 				//echo $e->getRequest();
 				if ($e->hasResponse()) {
 					$httpcode = $e->getResponse()->getStatusCode();
@@ -455,7 +455,7 @@ class Client {
 			$response = $client->request('post', 'https://upload.box.com/api/2.0/files/content', $args);
 			$httpcode = $response->getStatusCode();
 
-		} catch (\RequestException $e) {
+		} catch (GuzzleHttp\Exception\RequestException $e) {
 			//echo $e->getRequest();
 			if ($e->hasResponse()) {
 				$httpcode = $e->getResponse()->getStatusCode();
@@ -665,7 +665,7 @@ class Client {
 			$response = $client->request('put', 'https://api.box.com/2.0/files/' . $id, $args);
 			$httpcode = $response->getStatusCode();
 
-		} catch (\RequestException $e) {
+		} catch (GuzzleHttp\Exception\RequestException $e) {
 			//echo $e->getRequest();
 			if ($e->hasResponse()) {
 				$httpcode = $e->getResponse()->getStatusCode();
@@ -712,7 +712,7 @@ class Client {
 			$response = $client->request('put', 'https://api.box.com/2.0/folders/' . $id, $args);
 			$httpcode = $response->getStatusCode();
 
-		} catch (\RequestException $e) {
+		} catch (GuzzleHttp\Exception\RequestException $e) {
 			//echo $e->getRequest();
 			if ($e->hasResponse()) {
 				$httpcode = $e->getResponse()->getStatusCode();
@@ -756,7 +756,7 @@ class Client {
 			$response = $client->request('get', 'https://api.box.com/2.0/folders/'.$id.'/collaborations'  , $args);
 			$httpcode = $response->getStatusCode();
 
-		} catch (\RequestException $e) {
+		} catch (GuzzleHttp\Exception\RequestException $e) {
 			//echo $e->getRequest();
 			if ($e->hasResponse()) {
 				$httpcode = $e->getResponse()->getStatusCode();
@@ -811,7 +811,7 @@ class Client {
 			$response = $client->request('post', 'https://api.box.com/2.0/collaborations'  , $args);
 			$httpcode = $response->getStatusCode();
 
-		} catch (\RequestException $e) {
+		} catch (GuzzleHttp\Exception\RequestException $e) {
 			//echo $e->getRequest();
 			if ($e->hasResponse()) {
 				$httpcode = $e->getResponse()->getStatusCode();
