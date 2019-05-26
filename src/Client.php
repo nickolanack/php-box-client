@@ -107,11 +107,13 @@ class Client {
 					$httpcode = $e->getResponse()->getStatusCode();
 				}
 
+				error_log(print_r($e, true));
 
 			}
 
 			if ($httpcode !== 200) {
 				error_log(print_r($config,true));
+
 				throw new \Exception('Request Error: ' . $httpcode);
 			}
 
