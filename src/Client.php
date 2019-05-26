@@ -105,11 +105,13 @@ class Client {
 				//echo $e->getRequest();
 				if ($e->hasResponse()) {
 					$httpcode = $e->getResponse()->getStatusCode();
-					// echo $e->getResponse()->getBody();
 				}
+
+
 			}
 
 			if ($httpcode !== 200) {
+				error_log(print_r($config,true));
 				throw new \Exception('Request Error: ' . $httpcode);
 			}
 
