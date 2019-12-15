@@ -13,6 +13,9 @@ class Client {
 
 	protected $apiCalls=0;
 
+
+	protected $itemListFields;
+
 	public function __construct($config) {
 		
 		/**
@@ -101,19 +104,15 @@ class Client {
 				$response = $client->request('post', $authenticationUrl, $args);
 				$httpcode = $response->getStatusCode();
 
-			} catch (\GuzzleHttp\Exception\RequestException $e) {
+			} catch (\RequestException $e) {
 				//echo $e->getRequest();
 				if ($e->hasResponse()) {
 					$httpcode = $e->getResponse()->getStatusCode();
+					// echo $e->getResponse()->getBody();
 				}
-
-				error_log(print_r($e, true));
-
 			}
 
 			if ($httpcode !== 200) {
-				error_log(print_r($config,true));
-
 				throw new \Exception('Request Error: ' . $httpcode);
 			}
 
@@ -128,7 +127,12 @@ class Client {
 		return $this->authFn;
 	}
 
-	public function listItems($path) {
+	public function listItems($path, $fields=null) {
+
+		if($fields){
+			$this->returnItemFields($fields);
+		}
+
 
 		$id = $this->getFolderId($path);
 		if ($id < 0) {
@@ -137,7 +141,13 @@ class Client {
 
 		return $this->_listItems($id);
 	}
+	
 
+	
+	protected function returnItemFields($fields){
+		$this->itemListFields=$fields;
+		return $this;
+	}
 
 	protected function _listItems($folderId = 0) {
 		$list=array();
@@ -149,18 +159,10 @@ class Client {
 
 	protected function _iterateItems($folderId, $callback) {
 
-		$client = new \GuzzleHttp\Client();
-
 		if($folderId<0){
 			throw new \Exception('Expected valid id: '.$folderId);
 		}
 
-		$args = array(
-			'timeout' => 15,
-			'headers' => $this->getAuthHeader(),
-
-
-		);
 
 		$offset=0;
 		$limit=1000;
@@ -183,35 +185,24 @@ class Client {
 		$shouldSkipCallback=false;
 
 
+		$itemListFields=$this->itemListFields;
+		if(is_array($itemListFields)){
+			$itemListFields=implode(',', $itemListFields);
+		}
+		$this->itemListFields=null;
+
 		while($offset<$results->total_count){
 
-			$args['query'] = array(
+			$query=array(
 					'limit' => $limit,
 					'offset'=>$offset
 				);
 
-			
-
-			$httpcode = 0;
-			try {
-				
-				$this->apiCalls++;
-
-				$response = $client->request('get', 'https://api.box.com/2.0/folders/' . $folderId . '/items', $args);
-				$httpcode = $response->getStatusCode();
-
-			} catch (\GuzzleHttp\Exception\RequestException $e) {
-				//echo $e->getRequest();
-				if ($e->hasResponse()) {
-					$httpcode = $e->getResponse()->getStatusCode();
-					// echo $e->getResponse()->getBody();
-				}
+			if($itemListFields){
+				$query['fields']=$itemListFields;
 			}
 
-			if ($httpcode !== 200) {
-				throw new \Exception('Request Error: ' . $httpcode);
-			}
-
+			$response=$this->guzzleRequest('get', 'https://api.box.com/2.0/folders/' . $folderId . '/items', array('query' =>$query));
 			
 
 			$data= json_decode($response->getBody());
@@ -428,48 +419,23 @@ class Client {
 			throw new \Exception('Already Exists');
 		}
 
-		$client = new \GuzzleHttp\Client();
 
-		$args = array(
-			'timeout' => 15,
-			'headers' => $this->getAuthHeader(),
+		$response=$this->guzzleRequest('post', 'https://upload.box.com/api/2.0/files/content' . $id, array('multipart' => array(
+				array(
+					'name' => 'attributes',
+					'contents' => json_encode(array(
+						'parent' => array('id' => $parentId),
+						'name' => $newname,
+					)),
+				),
+				array(
+					'name' => 'FileContents',
+					'contents' => file_get_contents($file),
+					'filename' => $newname,
+
+				)))
 		);
 
-		$args['multipart'] = array(
-			array(
-				'name' => 'attributes',
-				'contents' => json_encode(array(
-					'parent' => array('id' => $parentId),
-					'name' => $newname,
-				)),
-			),
-			array(
-				'name' => 'FileContents',
-				'contents' => file_get_contents($file),
-				'filename' => $newname,
-
-			));
-
-		$httpcode = 0;
-		try {
-			echo 'post: ' . "\n";
-
-			$this->apiCalls++;
-
-			$response = $client->request('post', 'https://upload.box.com/api/2.0/files/content', $args);
-			$httpcode = $response->getStatusCode();
-
-		} catch (GuzzleHttp\Exception\RequestException $e) {
-			//echo $e->getRequest();
-			if ($e->hasResponse()) {
-				$httpcode = $e->getResponse()->getStatusCode();
-				// echo $e->getResponse()->getBody();
-			}
-		}
-
-		if ($httpcode !== 201) {
-			throw new \Exception('Request Error: ' . $httpcode);
-		}
 
 		$data=json_decode($response->getBody());
 
@@ -646,43 +612,34 @@ class Client {
 			throw new \Exception('Missing path');
 		}
 
-		$client = new \GuzzleHttp\Client();
-
-		$args = array(
-			'timeout' => 15,
-			'headers' => $this->getAuthHeader(),
-		);
-
-		$args['json'] = array(
-			'tags' => $tags,
-		);
-
 		echo 'set tags: ' . $id . ' ' . json_encode($tags);
 
-		$httpcode = 0;
-		try {
-
-			echo 'put: ' . "\n";
-
-			$this->apiCalls++;
-
-			$response = $client->request('put', 'https://api.box.com/2.0/files/' . $id, $args);
-			$httpcode = $response->getStatusCode();
-
-		} catch (GuzzleHttp\Exception\RequestException $e) {
-			//echo $e->getRequest();
-			if ($e->hasResponse()) {
-				$httpcode = $e->getResponse()->getStatusCode();
-				// echo $e->getResponse()->getBody();
-			}
-		}
-
-		if ($httpcode !== 200) {
-			throw new \Exception('Request Error: ' . $httpcode);
-		}
+		$response=$this->guzzleRequest('put', 'https://api.box.com/2.0/files/' . $id, array('json' => array(
+			'tags' => $tags,
+		)));
 
 
 		echo 'set file tags: '.json_encode(json_decode($response->getBody()))."\n";
+
+	}
+
+
+	public function getFileTags($id) {
+
+		if(is_string($id)&&strpos($id, '/')!==false){
+			$id=$this->getFolderId($id);
+		}
+
+		if ($id < 0) {
+			throw new \Exception('Missing path');
+		}
+
+		$response=$this->guzzleRequest('get', 'https://api.box.com/2.0/files/' . $id, array('query' => array(
+			'fields' => 'tags',
+		)));
+
+
+		return json_decode($response->getBody())->tags;
 
 	}
 
@@ -693,40 +650,12 @@ class Client {
 			throw new \Exception('Missing path');
 		}
 
-		$client = new \GuzzleHttp\Client();
-
-		$args = array(
-			'timeout' => 15,
-			'headers' => $this->getAuthHeader(),
-		);
-
-		$args['json'] = array(
-			'tags' => $tags,
-		);
-
+		
 		echo 'set tags: ' . $path . ' ' . json_encode($tags);
+		$response=$this->guzzleRequest('put', 'https://api.box.com/2.0/folders/' . $id, array('json' => array(
+			'tags' => $tags,
+		)));
 
-		$httpcode = 0;
-		try {
-
-			echo 'put: ' . "\n";
-
-			$this->apiCalls++;
-
-			$response = $client->request('put', 'https://api.box.com/2.0/folders/' . $id, $args);
-			$httpcode = $response->getStatusCode();
-
-		} catch (GuzzleHttp\Exception\RequestException $e) {
-			//echo $e->getRequest();
-			if ($e->hasResponse()) {
-				$httpcode = $e->getResponse()->getStatusCode();
-				// echo $e->getResponse()->getBody();
-			}
-		}
-
-		if ($httpcode !== 200) {
-			throw new \Exception('Request Error: ' . $httpcode);
-		}
 
 		echo 'set folder tags: '.json_encode(json_decode($response->getBody()))."\n";
 
@@ -738,43 +667,14 @@ class Client {
 			throw new \Exception('Missing path');
 		}
 
-		$client = new \GuzzleHttp\Client();
+		
+		$response=$this->guzzleRequest('get', 'https://api.box.com/2.0/folders/'.$id.'/collaborations');
 
-		$args = array(
-			'timeout' => 15,
-			'headers' => $this->getAuthHeader(),
-		);
+		$collabs=json_decode($response->getBody());
 
-		// $args['json'] = array(
-		// 	'owned_by' => $owner
-		// );
+		//echo 'get folder collaborations: '.json_encode($collabs)."\n";
 
-
-		$httpcode = 0;
-		try {
-
-			echo 'put: ' . "\n";
-
-			$this->apiCalls++;
-
-			$response = $client->request('get', 'https://api.box.com/2.0/folders/'.$id.'/collaborations'  , $args);
-			$httpcode = $response->getStatusCode();
-
-		} catch (GuzzleHttp\Exception\RequestException $e) {
-			//echo $e->getRequest();
-			if ($e->hasResponse()) {
-				$httpcode = $e->getResponse()->getStatusCode();
-				// echo $e->getResponse()->getBody();
-			}
-		}
-
-		if ($httpcode !== 200) {
-			throw new \Exception('Request Error: ' . $httpcode);
-		}
-
-
-		echo 'get folder collaborations: '.json_encode(json_decode($response->getBody()))."\n";
-
+		return $collabs->entries;
 
 	}
 
@@ -785,14 +685,8 @@ class Client {
 			throw new \Exception('Missing path');
 		}
 
-		$client = new \GuzzleHttp\Client();
 
-		$args = array(
-			'timeout' => 15,
-			'headers' => $this->getAuthHeader(),
-		);
-
-		$args['json'] = array(
+		$response=$this->guzzleRequest('post', 'https://api.box.com/2.0/collaborations'  , array('json'=>array(
 			'item'=>array(
 				'type'=>'folder',
 				'id'=>$id
@@ -802,17 +696,181 @@ class Client {
 				'id'=>$uid
 			),
 			'role'=>'co-owner'
-		);
+		)));
+
+
+
+		echo 'get folder collaborations: '.json_encode(json_decode($response->getBody()))."\n";
+
+
+	}
+
+
+	public function getWebhooks() {
+
+
+
+		$response=$this->guzzleRequest('get', 'https://api.box.com/2.0/webhooks');
+		$webhooks=json_decode($response->getBody());
+
+		echo 'get webhooks: '.json_encode($webhooks)."\n";
+
+		return $webhooks->entries;
+
+	}
+
+	public function getWebhook($id) {
+
+
+
+		$response=$this->guzzleRequest('get', 'https://api.box.com/2.0/webhooks/'.$id);
+		$webhook=json_decode($response->getBody());
+
+		echo 'get webhook: '.$id.json_encode($webhook)."\n";
+
+		return $webhook;
+
+	}
+
+	public function createWebhook($path, $url) {
+
+		$id = $this->getFolderId($path);
+		if ($id < 0) {
+			throw new \Exception('Missing path');
+		}
+
+		$args=array('json'=>array(
+			'target'=>array(
+				'type'=>'folder',
+				'id'=>$id.""
+			),
+			'triggers'=>["FILE.UPLOADED", "FILE.TRASHED", "FILE.DELETED", "FILE.RESTORED", "FILE.COPIED", "FILE.MOVED", "FILE.LOCKED", "FILE.UNLOCKED", "FILE.RENAMED",   "COMMENT.CREATED", "COMMENT.UPDATED", "COMMENT.DELETED"],
+			'address'=>$url
+		));
+
+		print_r($args);
+		$response=$this->guzzleRequest('post', 'https://api.box.com/2.0/webhooks'  , $args);
+
+
+
+		echo 'create webhook: '.json_encode(json_decode($response->getBody()))."\n";
+
+
+	}
+
+
+
+
+	public function getEvents($callback){
+
+		
+
+		$events=array();
+		$date=time()-3*24*60*60;
+		$query=array(
+				"stream_type"=>"all",
+				"event_type"=>implode(',', array("TAG_ITEM_CREATE", "ITEM_RENAME", "ITEM_CREATE", "ITEM_UPLOAD")),
+				"limit"=>500
+
+			);
+
+		$query['stream_position']=15201207722636874;
+
+		if(($file=$this->getStreamPositionCacheFile())!==false&&file_exists($file)){
+					
+			$next=json_decode(file_get_contents($file));
+			if($next&&key_exists('stream_position', $next)){
+				$query['stream_position']=$next->stream_position;
+			}
+			
+		}
+
+		
+
+		print_r($date);
+
+		while(true){
+
+	
+			$response=$this->guzzleRequest('get', 'https://api.box.com/2.0/events/', array('query'=>$query));
+
+			$eventResponse=json_decode($response->getBody());
+			echo 'get events: '.json_encode(array_diff_key(get_object_vars($eventResponse), array('entries'=>'')), JSON_PRETTY_PRINT)."\n";
+
+			if(count($eventResponse->entries)==0){
+				break;
+			}
+
+			foreach ($eventResponse->entries as $event) {
+				//print_r($event);
+				if(strtotime($event->created_at)<$date){
+					continue;
+				}
+				$events[]=$event;
+				if($callback){
+					$callback($event);
+				}
+			}
+
+			if($eventResponse->next_stream_position){
+				$query['stream_position']=$eventResponse->next_stream_position;
+				if(($file=$this->getStreamPositionCacheFile())!==false){
+					
+					file_put_contents($file, json_encode(array('stream_position'=>$eventResponse->next_stream_position)));
+					
+				}
+				
+			}
+
+
+		}
+
+		return $events;
+
+
+	}
+
+	protected function getStreamPositionCacheFile(){
+		if($this->cachePath){
+			$file=$this->cachePath.'/next_stream_position.json';
+			$dir=dirname($file);
+			if(!file_exists($dir)){
+				mkdir($dir, 0777, true);
+			}
+
+			return $file;
+			
+		}
+		return false;
+	}
+
+
+	public function getFile($id){
+
+		$response=$this->guzzleRequest('get', 'https://api.box.com/2.0/files/'.$id.'/content');
+		return $response->getBody();
+
+	}
+
+
+	protected function guzzleRequest($method, $url, $args=array()){
+
+
+		$args = array_merge(array(
+			'timeout' => 15,
+			'headers' => $this->getAuthHeader()
+		), $args);
 
 
 		$httpcode = 0;
 		try {
 
-			echo 'put: ' . "\n";
+			echo 'box '.$method.': ' .$url. "\n";
 
 			$this->apiCalls++;
 
-			$response = $client->request('post', 'https://api.box.com/2.0/collaborations'  , $args);
+			$client = new \GuzzleHttp\Client();
+			$response = $client->request($method, $url, $args);
 			$httpcode = $response->getStatusCode();
 
 		} catch (GuzzleHttp\Exception\RequestException $e) {
@@ -821,15 +879,58 @@ class Client {
 				$httpcode = $e->getResponse()->getStatusCode();
 				// echo $e->getResponse()->getBody();
 			}
+		} catch (GuzzleHttp\Exception\ServerException $e) {
+			sleep(2);
+			return guzzleRequestAttempt($method, $url, $args=array());
+
 		}
 
-		if ($httpcode !== 201) {
+
+
+		if ($httpcode !== 200&&$httpcode !== 201) {
+
+
+
 			throw new \Exception('Request Error: ' . $httpcode);
 		}
 
+		return $response;
 
-		echo 'get folder collaborations: '.json_encode(json_decode($response->getBody()))."\n";
+	}
 
+
+	protected function guzzleRequestAttempt($method, $url, $args=array()){
+
+
+		$args = array_merge(array(
+			'timeout' => 15,
+			'headers' => $this->getAuthHeader()
+		), $args);
+
+
+		$httpcode = 0;
+		
+
+		echo 'box '.$method.': ' .$url. "\n";
+
+		$this->apiCalls++;
+
+		$client = new \GuzzleHttp\Client();
+		$response = $client->request($method, $url, $args);
+		$httpcode = $response->getStatusCode();
+
+		
+
+
+
+		if ($httpcode !== 200&&$httpcode !== 201) {
+
+
+
+			throw new \Exception('Request Error: ' . $httpcode);
+		}
+
+		return $response;
 
 	}
 
