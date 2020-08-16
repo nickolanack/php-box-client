@@ -16,6 +16,8 @@ class Client {
 
 	protected $itemListFields;
 
+	protected $syncFromLast=false;
+
 	public function __construct($config) {
 		
 		/**
@@ -776,7 +778,7 @@ class Client {
 
 		$query['stream_position']=15201207722636874;
 
-		if(($file=$this->getStreamPositionCacheFile())!==false&&file_exists($file)){
+		if($this->syncFromLast&&($file=$this->getStreamPositionCacheFile())!==false&&file_exists($file)){
 					
 			$next=json_decode(file_get_contents($file));
 			if($next&&key_exists('stream_position', $next)){
@@ -880,6 +882,10 @@ class Client {
 				// echo $e->getResponse()->getBody();
 			}
 		} catch (GuzzleHttp\Exception\ServerException $e) {
+			sleep(2);
+			return guzzleRequestAttempt($method, $url, $args=array());
+
+		} catch (GuzzleHttp\Exception\ConnectException $e) {
 			sleep(2);
 			return guzzleRequestAttempt($method, $url, $args=array());
 
