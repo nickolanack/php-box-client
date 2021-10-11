@@ -31,7 +31,7 @@ class Client {
 
 		$this->credentials = $config;
 
-		if (!key_exists('token', $this->credentials)) {
+		if (!isset($this->credentials->token)) {
 
 			
 
@@ -39,7 +39,7 @@ class Client {
 			print_r($authFn());
 		}
 
-		if (!(key_exists('token', $this->credentials)||$this->authFn)) {
+		if (!(isset($this->credentials->token)||$this->authFn)) {
 			throw new \Exeption('no token! or authFn');
 		}
 
@@ -462,7 +462,7 @@ class Client {
 			return $this->getPathId($path);
 		}
 
-		if($this->hasCachedItems($fromId)&&(!key_exists(trim($path,'/'), $this->paths))){
+		if($this->hasCachedItems($fromId)&&(!isset($this->paths[trim($path,'/'),]))){
 			echo 'not found cache : `' .$path."\n\n";
 			return -1;
 		}
@@ -530,7 +530,7 @@ class Client {
 		if($this->cachePath&&file_exists($this->cachePath.'/'.trim($path,'/').'.json')){
 			return true;
 		}
-		return key_exists(trim($path,'/'), $this->paths);
+		return isset($this->paths[trim($path,'/')]);
 	}
 	protected function getPathId($path){
 		if($this->cachePath&&file_exists($this->cachePath.'/'.trim($path,'/').'.json')){
@@ -572,7 +572,7 @@ class Client {
 	protected function getAuthHeader() {
 
 
-		if(!key_exists('token',$this->credentials)){
+		if(!isset($this->credentials->token)){
 
 			if(!$this->authFn){
 					throw new \Exception('No auth fn');
@@ -582,7 +582,7 @@ class Client {
 			
 		}
 
-		if(key_exists('expires', $this->credentials)&& $this->credentials->expires-150<time()){
+		if(isset($this->credentials->expires)&& $this->credentials->expires-150<time()){
 
 			if(!$this->authFn){
 				throw new \Exception('No auth fn');
@@ -592,7 +592,7 @@ class Client {
 		}
 
 
-		if(!key_exists('token',$this->credentials)){
+		if(!isset($this->credentials->token)){
 			throw new \Exception('No auth token');
 		}
 
@@ -781,7 +781,7 @@ class Client {
 		if($this->syncFromLast&&($file=$this->getStreamPositionCacheFile())!==false&&file_exists($file)){
 					
 			$next=json_decode(file_get_contents($file));
-			if($next&&key_exists('stream_position', $next)){
+			if($next&&isset($next->stream_position)){
 				$query['stream_position']=$next->stream_position;
 			}
 			
