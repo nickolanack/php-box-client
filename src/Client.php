@@ -462,7 +462,7 @@ class Client {
 			return $this->getPathId($path);
 		}
 
-		if($this->hasCachedItems($fromId)&&(!isset($this->paths[trim($path,'/'),]))){
+		if($this->hasCachedItems($fromId)&&(!isset($this->paths[trim($path,'/')]))){
 			echo 'not found cache : `' .$path."\n\n";
 			return -1;
 		}
