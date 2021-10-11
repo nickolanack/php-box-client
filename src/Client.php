@@ -175,15 +175,16 @@ class Client {
 		);
 
 		$shouldCache=$this->shouldCacheItems($folderId);
-		if($shouldCache){
+		// if($shouldCache){
 
-			print_r(array_search($folderId, $this->paths));
-			print_r(array_map(function($stack){
-				return array_intersect_key($stack, array(
-					'file'=>'', 'line'=>''
-				));
-			}, debug_backtrace()));
-		}
+			// print_r(array_search($folderId, $this->paths));
+			// print_r(array_map(function($stack){
+			// 	return array_intersect_key($stack, array(
+			// 		'file'=>'', 'line'=>''
+			// 	));
+			//}, debug_backtrace()));
+		// }
+		
 		$shouldSkipCallback=false;
 
 
